@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  app:
+    image: ghcr.io/${GITHUB_REPOSITORY}:latest
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://floryder:password@postgres:5432/floryder
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "3000:3000"
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: floryder
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: floryder
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+
+volumes:
+  pgdata:
