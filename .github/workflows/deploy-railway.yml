@@ -42,8 +42,7 @@ jobs:
           # `whoami` or `status` helps confirm the token was read successfully
           railway whoami || echo "railway whoami failed (token may be invalid)"
 
-      # login step kept but token is provided via env (no --apiKey flag)
-      - name: Railway login
+      - name: Railway login (use env var)
         env:
           RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
         run: railway login
