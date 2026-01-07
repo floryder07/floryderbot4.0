@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Server {
+  id        Int     @id @default(autoincrement())
+  guildId   String  @unique
+  config    Json?
+  createdAt DateTime @default(now())
+  picks     Pick[]
+}
+
+model Pick {
+  id             Int      @id @default(autoincrement())
+  server         Server?  @relation(fields: [serverId], references: [id])
+  serverId       Int?
+  pickTime       DateTime @default(now())
+  payload        Json
+  computedTotal  Float
+  subScores      Json
+  createdAt      DateTime @default(now())
+  feedbacks      Feedback[]
+}
+
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  pick      Pick     @relation(fields: [pickId], references: [id])
+  pickId    Int
+  userId    String
+  result    String
+  comment   String?
+  createdAt DateTime @default(now())
+}
+
+model RawGameData {
+  id        Int     @id @default(autoincrement())
+  source    String
+  gameTime  DateTime
+  raw       Json
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id        Int     @id @default(autoincrement())
+  discordId String  @unique
+  prefs     Json?
+  createdAt DateTime @default(now())
+}
