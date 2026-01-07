@@ -15,6 +15,11 @@ jobs:
     name: Build and deploy to Railway
     runs-on: ubuntu-latest
     environment: production
+    env:
+      RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
+      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+      RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
+      RAILWAY_ENVIRONMENT: ${{ secrets.RAILWAY_ENVIRONMENT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,10 +47,7 @@ jobs:
           # `whoami` or `status` helps confirm the token was read successfully
           railway whoami || echo "railway whoami failed (token may be invalid)"
 
-      - name: Railway login (use env var)
-        env:
-          RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
-        run: railway login
+      # Removed interactive login step — CI should use RAILWAY_API_KEY from job env
 
       - name: Deploy to Railway
         env:
