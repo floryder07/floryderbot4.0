@@ -33,6 +33,16 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
+      # Optional check to make sure the CLI can read the token from env
+      - name: Verify Railway CLI and auth
+        env:
+          RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
+        run: |
+          railway --version
+          # `whoami` or `status` helps confirm the token was read successfully
+          railway whoami || echo "railway whoami failed (token may be invalid)"
+
+      # login step kept but token is provided via env (no --apiKey flag)
       - name: Railway login
         env:
           RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
@@ -45,15 +55,9 @@ jobs:
           RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
           RAILWAY_ENVIRONMENT: ${{ secrets.RAILWAY_ENVIRONMENT }}
         run: |
-          # The exact CLI command can change across railway CLI versions.
-          # Common pattern:
-          # 1) Change to project dir or ensure project is linked in Railway.
-          # 2) Run `railway up` to deploy; flags can be used to specify project/service/env.
-          #
-          # Example (may need adjustments depending on your Railway setup):
-          railway up --projectId $RAILWAY_PROJECT_ID --serviceId $RAILWAY_SERVICE_ID --environment $RAILWAY_ENVIRONMENT --yes
+          echo "Deploying to Railway project $RAILWAY_PROJECT_ID service $RAILWAY_SERVICE_ID environment $RAILWAY_ENVIRONMENT"
+          # Primary: common flag names (adjust if your CLI requires different flags)
+          railway up --project "$RAILWAY_PROJECT_ID" --service "$RAILWAY_SERVICE_ID" --environment "$RAILWAY_ENVIRONMENT" --yes
 
-          # If your Railway project repository is linked in the Railway dashboard,
-          # `railway up` without flags will typically deploy the linked project.
-          #
-          # If the CLI version or your process requires different arguments, replace the command above.
+          # If the CLI version complains about those flags, try the alternate names:
+          # railway up --projectId "$RAILWAY_PROJECT_ID" --serviceId "$RAILWAY_SERVICE_ID" --environment "$RAILWAY_ENVIRONMENT" --yes
