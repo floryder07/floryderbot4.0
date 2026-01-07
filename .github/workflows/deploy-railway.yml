@@ -39,13 +39,19 @@ jobs:
         run: npm install -g @railway/cli
 
       # Optional check to make sure the CLI can read the token from env
-      - name: Verify Railway CLI and auth
+      - name: Verify Railway CLI and auth (debug)
         env:
           RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
         run: |
-          railway --version
-          # `whoami` or `status` helps confirm the token was read successfully
-          railway whoami || echo "railway whoami failed (token may be invalid)"
+          echo "RAILWAY_API_KEY present: $( [ -n \"$RAILWAY_API_KEY\" ] && echo yes || echo no )"
+          echo "Node: $(node --version 2>/dev/null || echo 'not installed')"
+          railway --version || echo "railway CLI not available"
+          # Try whoami but don't fail the job here; capture output for debugging
+          if railway whoami; then
+            echo "railway whoami succeeded"
+          else
+            echo "railway whoami failed (token may be invalid or not accepted in CI)"
+          fi
 
       # Removed interactive login step — CI should use RAILWAY_API_KEY from job env
 
