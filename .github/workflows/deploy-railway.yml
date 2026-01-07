@@ -36,10 +36,7 @@ jobs:
       - name: Railway login
         env:
           RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
-        run: |
-          # Railway CLI supports login with token env var or explicit login.
-          # This command will use the token from RAILWAY_API_KEY.
-          railway login --apiKey $RAILWAY_API_KEY
+        run: railway login
 
       - name: Deploy to Railway
         env:
