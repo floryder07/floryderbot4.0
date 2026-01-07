@@ -1,9 +1,13 @@
 name: Deploy (GHCR -> Railway)
 
+# Trigger when the Build and push Docker image workflow completes successfully.
+# Also allow manual dispatch for ad-hoc deploys.
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows:
+      - "Build and push Docker image"
+    types:
+      - completed
   workflow_dispatch:
 
 permissions:
@@ -27,9 +31,15 @@ jobs:
       - name: Determine image tag
         id: image
         run: |
-          # Use the commit SHA tag (built by build-and-push workflow)
-          IMAGE="ghcr.io/${{ github.repository }}:${{ github.sha }}"
-          echo "image=${IMAGE}" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            # When triggered by workflow_run, use the head SHA of the triggering workflow
+            IMAGE="ghcr.io/${{ github.repository }}:${{ github.event.workflow_run.head_sha }}"
+          else
+            # For manual dispatch, fall back to the current commit
+            IMAGE="ghcr.io/${{ github.repository }}:${{ github.sha }}"
+          fi
+          echo "Determined image: $IMAGE"
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
@@ -54,15 +64,6 @@ jobs:
         run: |
           echo "Deploying image: $IMAGE"
 
-          # Example CLI invocation. Railway CLI flags evolved across versions;
-          # if this command fails, check your railway CLI version and adjust
-          # the command or use your Railway project's linked repository.
-          #
-          # Common patterns:
-          #  - railway up --image <image> --projectId <id> --serviceId <id> --environment <env> --yes
-          #  - railway services update <serviceId> --image <image>
-          #
-          # We'll try `railway up` with flags. Adjust if needed for your setup.
           if [ -n "$RAILWAY_PROJECT_ID" ] && [ -n "$RAILWAY_SERVICE_ID" ]; then
             railway up --projectId "$RAILWAY_PROJECT_ID" --serviceId "$RAILWAY_SERVICE_ID" --environment "${RAILWAY_ENVIRONMENT:-production}" --image "$IMAGE" --yes || {
               echo "railway up failed. Trying fallback: railway services update"
@@ -72,7 +73,6 @@ jobs:
               }
             }
           else
-            # If project/service IDs are not provided, attempt to deploy to the linked Railway project.
             railway up --image "$IMAGE" --yes || {
               echo "railway up failed. Paste logs and I'll help adjust for your Railway setup."
               exit 1
