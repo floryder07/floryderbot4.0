@@ -1,4 +1,4 @@
-name: Lint
+name: Lint & Typecheck
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
     branches: [ "**" ]
 
 jobs:
-  eslint:
-    name: ESLint & Typecheck
+  lint:
+    name: ESLint + Prettier + Typecheck
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -31,7 +31,14 @@ jobs:
         run: npm ci
 
       - name: Typecheck
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
-      - name: Run lint (add eslint config to project)
-        run: npm run lint || echo "Add eslint configuration and lint script"
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: ESLint fix (optional) 
+        if: ${{ github.event_name == 'pull_request' }}
+        run: echo "To auto-fix run `npm run lint:fix` locally"
+
+      - name: Prettier check
+        run: npm run format:check
