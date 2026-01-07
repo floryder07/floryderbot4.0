@@ -58,13 +58,4 @@ jobs:
       - name: Deploy to Railway
         env:
           RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
-          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
-          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
-          RAILWAY_ENVIRONMENT: ${{ secrets.RAILWAY_ENVIRONMENT }}
-        run: |
-          echo "Deploying to Railway project $RAILWAY_PROJECT_ID service $RAILWAY_SERVICE_ID environment $RAILWAY_ENVIRONMENT"
-          # Primary: common flag names (adjust if your CLI requires different flags)
-          railway up --project "$RAILWAY_PROJECT_ID" --service "$RAILWAY_SERVICE_ID" --environment "$RAILWAY_ENVIRONMENT" --yes
-
-          # If the CLI version complains about those flags, try the alternate names:
-          # railway up --projectId "$RAILWAY_PROJECT_ID" --serviceId "$RAILWAY_SERVICE_ID" --environment "$RAILWAY_ENVIRONMENT" --yes
+        run: railway up
