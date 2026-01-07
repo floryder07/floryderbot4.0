@@ -1,85 +1,40 @@
-name: Deploy (GHCR -> Railway)
 
-# Trigger when the Build and push Docker image workflow completes successfully.
-# Also allow manual dispatch for ad-hoc deploys.
+name: Deploy to Railway
+
 on:
-  workflow_run:
-    workflows:
-      - "Build and push Docker image"
-    types:
-      - completed
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  id-token: write
+  push:
+    branches:
+      - main
 
 jobs:
+
   deploy:
-    name: Deploy GHCR image to Railway
     runs-on: ubuntu-latest
-    environment: production
     env:
       RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
+      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+      RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
+      RAILWAY_ENVIRONMENT: ${{ secrets.RAILWAY_ENVIRONMENT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 18
+      - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: '18'
 
-      - name: Determine image tag
-        id: image
+      - name: Build (install deps and produce lockfile)
         run: |
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            # When triggered by workflow_run, use the head SHA of the triggering workflow
-            IMAGE="ghcr.io/${{ github.repository }}:${{ github.event.workflow_run.head_sha }}"
-          else
-            # For manual dispatch, fall back to the current commit
-            IMAGE="ghcr.io/${{ github.repository }}:${{ github.sha }}"
-          fi
-          echo "Determined image: $IMAGE"
-          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+          npm ci
+          npm run build || true
 
       - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Railway login
-        env:
-          RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
         run: |
-          if [ -z "$RAILWAY_API_KEY" ]; then
-            echo "RAILWAY_API_KEY is not set. Aborting."
-            exit 1
-          fi
-          railway login
+          curl -sSL https://railway.app/install.sh | sh
+          railway --version
 
-      - name: Deploy image to Railway
-        env:
-          RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
-          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
-          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
-          RAILWAY_ENVIRONMENT: ${{ secrets.RAILWAY_ENVIRONMENT }}
-          IMAGE: ${{ steps.image.outputs.image }}
+      - name: Deploy to Railway
         run: |
-          echo "Deploying image: $IMAGE"
-
-          if [ -n "$RAILWAY_PROJECT_ID" ] && [ -n "$RAILWAY_SERVICE_ID" ]; then
-            railway up --projectId "$RAILWAY_PROJECT_ID" --serviceId "$RAILWAY_SERVICE_ID" --environment "${RAILWAY_ENVIRONMENT:-production}" --image "$IMAGE" --yes || {
-              echo "railway up failed. Trying fallback: railway services update"
-              railway services update "$RAILWAY_SERVICE_ID" --image "$IMAGE" || {
-                echo "Both railway attempts failed. Paste logs and I'll help adjust."
-                exit 1
-              }
-            }
-          else
-            railway up --image "$IMAGE" --yes || {
-              echo "railway up failed. Paste logs and I'll help adjust for your Railway setup."
-              exit 1
-            }
-          fi
-
-      - name: Confirm deploy
-        run: echo "Deploy workflow finished. If Railway accepted the image, the service should be updating."
+          echo "Using Railway project $RAILWAY_PROJECT_ID service $RAILWAY_SERVICE_ID"
+          railway up --project "$RAILWAY_PROJECT_ID" --service "$RAILWAY_SERVICE_ID" --environment "$RAILWAY_ENVIRONMENT"
