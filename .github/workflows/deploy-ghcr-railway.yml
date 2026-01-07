@@ -19,6 +19,8 @@ jobs:
     name: Deploy GHCR image to Railway
     runs-on: ubuntu-latest
     environment: production
+    env:
+      RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,7 +54,7 @@ jobs:
             echo "RAILWAY_API_KEY is not set. Aborting."
             exit 1
           fi
-          railway login --apiKey "$RAILWAY_API_KEY"
+          railway login
 
       - name: Deploy image to Railway
         env:
